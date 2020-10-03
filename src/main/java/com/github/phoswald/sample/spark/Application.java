@@ -7,13 +7,13 @@ import static spark.Spark.post;
 import static spark.Spark.put;
 import static spark.Spark.staticFiles;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 
 import org.apache.log4j.Logger;
 
@@ -39,7 +39,6 @@ public class Application {
     private static final int port = Integer.parseInt(Optional.ofNullable(System.getenv("APP_HTTP_PORT")).orElse("8080"));
     private static final XStream xstream = new XStream(); // TODO configure security
     private static final Gson gson = new Gson();
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("taskDS");
 
     static {
         xstream.alias("EchoRequest", EchoRequest.class);
@@ -153,6 +152,11 @@ public class Application {
     }
 
     private static TaskRepository createTaskRepository() {
-        return new TaskRepository(emf.createEntityManager());
+        try {
+            Connection conn = DriverManager.getConnection("jdbc:h2:./databases/task-db", "sa", "sa");
+            return new TaskRepository(conn);
+        } catch (SQLException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
