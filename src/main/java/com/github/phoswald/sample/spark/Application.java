@@ -7,7 +7,8 @@ import static spark.Spark.post;
 import static spark.Spark.put;
 import static spark.Spark.staticFiles;
 
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,6 +19,7 @@ import javax.persistence.Persistence;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.phoswald.sample.ConfigProvider;
 import com.github.phoswald.sample.sample.EchoRequest;
 import com.github.phoswald.sample.sample.EchoResponse;
 import com.github.phoswald.sample.sample.SampleController;
@@ -37,10 +39,11 @@ import spark.Route;
 public class Application {
 
     private static final Logger logger = LogManager.getLogger();
-    private static final int port = Integer.parseInt(Optional.ofNullable(System.getenv("APP_HTTP_PORT")).orElse("8080"));
+    private static final ConfigProvider config = new ConfigProvider();
+    private static final int port = Integer.parseInt(config.getConfigProperty("app.http.port").orElse("8080"));
     private static final XStream xstream = new XStream(); // TODO configure security
     private static final Gson gson = new Gson();
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("taskDS");
+    private static final EntityManagerFactory emf = createEntityManagerFactory();
 
     static {
         xstream.alias("EchoRequest", EchoRequest.class);
@@ -49,22 +52,22 @@ public class Application {
 
     public static void main(String[] args) {
         logger.info("sample-spark is starting, port=" + port);
-        port(8080);
+        port(port);
         staticFiles.location("/resources");
-        get("/rest/sample/time", (req, res) -> new SampleResource().getTime());
-        get("/rest/sample/config", (req, res) -> new SampleResource().getConfig());
-        post("/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
-        post("/rest/sample/echo-json", createJsonHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
-        get("/rest/pages/sample", createHtmlHandler(() -> new SampleController().getSamplePage()));
-        get("/rest/tasks", createJsonHandler(() -> createTaskResource().getTasks()));
-        post("/rest/tasks", createJsonHandler(TaskEntity.class, req -> createTaskResource().postTasks(req)));
-        get("/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().getTask(req.params("id"))));
-        put("/rest/tasks/:id", createJsonHandlerEx(TaskEntity.class, (req, reqBody) -> createTaskResource().putTask(req.params("id"), reqBody)));
-        delete("/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().deleteTask(req.params("id"))));
-        get("/rest/pages/tasks", createHtmlHandler(() -> createTaskController().getTasksPage()));
-        post("/rest/pages/tasks", createHtmlFormHandler(form -> createTaskController().postTasksPage(form.get("title").value(), form.get("description").value())));
-        get("/rest/pages/tasks/:id", createHtmlHandlerEx(req -> createTaskController().getTaskPage(req.params("id"), req.queryParams("action"))));
-        post("/rest/pages/tasks/:id", createHtmlFormHandlerEx((req, form) -> createTaskController().postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
+        get("/app/rest/sample/time", (req, res) -> new SampleResource().getTime());
+        get("/app/rest/sample/config", (req, res) -> new SampleResource().getConfig());
+        post("/app/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
+        post("/app/rest/sample/echo-json", createJsonHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
+        get("/app/pages/sample", createHtmlHandler(() -> new SampleController().getSamplePage()));
+        get("/app/rest/tasks", createJsonHandler(() -> createTaskResource().getTasks()));
+        post("/app/rest/tasks", createJsonHandler(TaskEntity.class, req -> createTaskResource().postTasks(req)));
+        get("/app/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().getTask(req.params("id"))));
+        put("/app/rest/tasks/:id", createJsonHandlerEx(TaskEntity.class, (req, reqBody) -> createTaskResource().putTask(req.params("id"), reqBody)));
+        delete("/app/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().deleteTask(req.params("id"))));
+        get("/app/pages/tasks", createHtmlHandler(() -> createTaskController().getTasksPage()));
+        post("/app/pages/tasks", createHtmlFormHandler(form -> createTaskController().postTasksPage(form.get("title").value(), form.get("description").value())));
+        get("/app/pages/tasks/:id", createHtmlHandlerEx(req -> createTaskController().getTaskPage(req.params("id"), req.queryParams("action"))));
+        post("/app/pages/tasks/:id", createHtmlFormHandlerEx((req, form) -> createTaskController().postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
     }
 
     // TODO generate 404 if response body is null
@@ -154,6 +157,15 @@ public class Application {
     }
 
     private static TaskRepository createTaskRepository() {
-        return new TaskRepository(emf.createEntityManager());
+        return new TaskRepository(emf.createEntityManager()); // TODO review cleanup
+    }
+
+    private static EntityManagerFactory createEntityManagerFactory() {
+    	Map<String, String> props = new HashMap<>();
+    	config.getConfigProperty("app.jdbc.driver"  ).ifPresent(v -> props.put("javax.persistence.jdbc.driver", v));
+    	config.getConfigProperty("app.jdbc.url"     ).ifPresent(v -> props.put("javax.persistence.jdbc.url", v));
+    	config.getConfigProperty("app.jdbc.username").ifPresent(v -> props.put("javax.persistence.jdbc.user", v));
+    	config.getConfigProperty("app.jdbc.password").ifPresent(v -> props.put("javax.persistence.jdbc.password", v));
+    	return Persistence.createEntityManagerFactory("taskDS", props);
     }
 }
