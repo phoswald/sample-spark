@@ -53,7 +53,3 @@ $ curl 'http://localhost:8080/app/rest/tasks/5b89f266-c566-4d1f-8545-451bc443cf2
   -d '{"title":"Some updated task","description":"This is still CURL","done":false}'
 $ curl 'http://localhost:8080/app/rest/tasks/5b89f266-c566-4d1f-8545-451bc443cf26' -i -X DELETE
 ~~~
-
-# TODO
-
-- Make datasource externally configurable
