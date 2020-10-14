@@ -10,7 +10,6 @@ import static spark.Spark.staticFiles;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,6 +17,7 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.phoswald.sample.ConfigProvider;
 import com.github.phoswald.sample.sample.EchoRequest;
 import com.github.phoswald.sample.sample.EchoResponse;
 import com.github.phoswald.sample.sample.SampleController;
@@ -37,7 +37,8 @@ import spark.Route;
 public class Application {
 
     private static final Logger logger = LogManager.getLogger();
-    private static final int port = Integer.parseInt(Optional.ofNullable(System.getenv("APP_HTTP_PORT")).orElse("8080"));
+    private static final ConfigProvider config = new ConfigProvider();
+    private static final int port = Integer.parseInt(config.getConfigProperty("app.http.port").orElse("8080"));
     private static final XStream xstream = new XStream(); // TODO configure security
     private static final Gson gson = new Gson();
 
@@ -48,22 +49,22 @@ public class Application {
 
     public static void main(String[] args) {
         logger.info("sample-spark is starting, port=" + port);
-        port(8080);
+        port(port);
         staticFiles.location("/resources");
-        get("/rest/sample/time", (req, res) -> new SampleResource().getTime());
-        get("/rest/sample/config", (req, res) -> new SampleResource().getConfig());
-        post("/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
-        post("/rest/sample/echo-json", createJsonHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
-        get("/rest/pages/sample", createHtmlHandler(() -> new SampleController().getSamplePage()));
-        get("/rest/tasks", createJsonHandler(() -> createTaskResource().getTasks()));
-        post("/rest/tasks", createJsonHandler(TaskEntity.class, req -> createTaskResource().postTasks(req)));
-        get("/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().getTask(req.params("id"))));
-        put("/rest/tasks/:id", createJsonHandlerEx(TaskEntity.class, (req, reqBody) -> createTaskResource().putTask(req.params("id"), reqBody)));
-        delete("/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().deleteTask(req.params("id"))));
-        get("/rest/pages/tasks", createHtmlHandler(() -> createTaskController().getTasksPage()));
-        post("/rest/pages/tasks", createHtmlFormHandler(form -> createTaskController().postTasksPage(form.get("title").value(), form.get("description").value())));
-        get("/rest/pages/tasks/:id", createHtmlHandlerEx(req -> createTaskController().getTaskPage(req.params("id"), req.queryParams("action"))));
-        post("/rest/pages/tasks/:id", createHtmlFormHandlerEx((req, form) -> createTaskController().postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
+        get("/app/rest/sample/time", (req, res) -> new SampleResource().getTime());
+        get("/app/rest/sample/config", (req, res) -> new SampleResource().getConfig());
+        post("/app/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
+        post("/app/rest/sample/echo-json", createJsonHandler(EchoRequest.class, reqBody -> new SampleResource().postEcho(reqBody)));
+        get("/app/pages/sample", createHtmlHandler(() -> new SampleController().getSamplePage()));
+        get("/app/rest/tasks", createJsonHandler(() -> createTaskResource().getTasks()));
+        post("/app/rest/tasks", createJsonHandler(TaskEntity.class, req -> createTaskResource().postTasks(req)));
+        get("/app/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().getTask(req.params("id"))));
+        put("/app/rest/tasks/:id", createJsonHandlerEx(TaskEntity.class, (req, reqBody) -> createTaskResource().putTask(req.params("id"), reqBody)));
+        delete("/app/rest/tasks/:id", createJsonHandlerEx(req -> createTaskResource().deleteTask(req.params("id"))));
+        get("/app/pages/tasks", createHtmlHandler(() -> createTaskController().getTasksPage()));
+        post("/app/pages/tasks", createHtmlFormHandler(form -> createTaskController().postTasksPage(form.get("title").value(), form.get("description").value())));
+        get("/app/pages/tasks/:id", createHtmlHandlerEx(req -> createTaskController().getTaskPage(req.params("id"), req.queryParams("action"))));
+        post("/app/pages/tasks/:id", createHtmlFormHandlerEx((req, form) -> createTaskController().postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
     }
 
     // TODO generate 404 if response body is null
@@ -154,8 +155,11 @@ public class Application {
 
     private static TaskRepository createTaskRepository() {
         try {
-            Connection conn = DriverManager.getConnection("jdbc:h2:./databases/task-db", "sa", "sa");
-            return new TaskRepository(conn);
+        	String url = config.getConfigProperty("app.jdbc.url").orElse("jdbc:h2:mem:test;INIT=RUNSCRIPT FROM 'src/main/resources/schema.sql'");
+        	String username = config.getConfigProperty("app.jdbc.username").orElse("sa");
+        	String password = config.getConfigProperty("app.jdbc.password").orElse("sa");
+            Connection conn = DriverManager.getConnection(url, username, password);
+            return new TaskRepository(conn); // TODO review cleanup
         } catch (SQLException e) {
             throw new IllegalStateException(e);
         }
