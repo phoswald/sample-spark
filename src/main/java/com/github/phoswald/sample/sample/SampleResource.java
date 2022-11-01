@@ -7,7 +7,11 @@ import com.github.phoswald.sample.ConfigProvider;
 
 public class SampleResource {
 
-    private final String sampleConfig = new ConfigProvider().getConfigProperty("app.sample.config").orElse("Undefined");
+    private final String sampleConfig;
+
+    public SampleResource(ConfigProvider config) {
+        this.sampleConfig = config.getConfigProperty("app.sample.config").orElse("Undefined");
+    }
 
     public String getTime() {
         return ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME);
@@ -19,7 +23,7 @@ public class SampleResource {
 
     public EchoResponse postEcho(EchoRequest request) {
         EchoResponse response = new EchoResponse();
-        response.setOuput("Received " + request.getInput());
+        response.setOutput("Received " + request.getInput());
         return response;
     }
 }
