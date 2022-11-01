@@ -7,9 +7,14 @@ import static spark.Spark.post;
 import static spark.Spark.put;
 import static spark.Spark.staticFiles;
 
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,15 +22,13 @@ import org.apache.logging.log4j.Logger;
 import com.github.phoswald.sample.ConfigProvider;
 import com.github.phoswald.sample.di.ApplicationModule;
 import com.github.phoswald.sample.sample.EchoRequest;
-import com.github.phoswald.sample.sample.EchoResponse;
 import com.github.phoswald.sample.sample.SampleController;
 import com.github.phoswald.sample.sample.SampleResource;
 import com.github.phoswald.sample.task.TaskController;
 import com.github.phoswald.sample.task.TaskEntity;
 import com.github.phoswald.sample.task.TaskResource;
-import com.google.gson.Gson;
-import com.thoughtworks.xstream.XStream;
 
+import jakarta.xml.bind.JAXB;
 import spark.QueryParamsMap;
 import spark.Request;
 import spark.Response;
@@ -35,14 +38,7 @@ import spark.Spark;
 public class Application {
 
     private static final Logger logger = LogManager.getLogger();
-    private static final XStream xstream = new XStream();
-    private static final Gson gson = new Gson();
-
-    static {
-        xstream.allowTypes(new Class[] { EchoRequest.class, EchoResponse.class });
-        xstream.alias("EchoRequest", EchoRequest.class);
-        xstream.alias("EchoResponse", EchoResponse.class);
-    }
+    private static final Jsonb json = JsonbBuilder.create();
 
     private final int port;
     private final SampleResource sampleResource;
@@ -99,35 +95,35 @@ public class Application {
     private static <R> Route createXmlHandler(Class<R> reqClass, Function<R, Object> callback) {
         return (req, res) -> {
             res.type("text/xml");
-            return xstream.toXML(callback.apply(reqClass.cast(xstream.fromXML(req.body()))));
+            return serializeXml(callback.apply(deserializeXml(reqClass, req.body())));
         };
     }
 
     private static <R> Route createJsonHandler(Supplier<Object> callback) {
         return (req, res) -> {
             res.type("application/json");
-            return gson.toJson(callback.get());
+            return serializeJson(callback.get());
         };
     }
 
     private static <R> Route createJsonHandlerEx(Function<Request, Object> callback) {
         return (req, res) -> {
             res.type("application/json");
-            return gson.toJson(callback.apply(req));
+            return serializeJson(callback.apply(req));
         };
     }
 
     private static <R> Route createJsonHandler(Class<R> reqClass, Function<R, Object> callback) {
         return (req, res) -> {
             res.type("application/json");
-            return gson.toJson(callback.apply(gson.fromJson(req.body(), reqClass)));
+            return serializeJson(callback.apply(deserializeJson(reqClass, req.body())));
         };
     }
 
     private static <R> Route createJsonHandlerEx(Class<R> reqClass, BiFunction<Request, R, Object> callback) {
         return (req, res) -> {
             res.type("application/json");
-            return gson.toJson(callback.apply(req, gson.fromJson(req.body(), reqClass)));
+            return serializeJson(callback.apply(req, deserializeJson(reqClass, req.body())));
         };
     }
 
@@ -169,5 +165,23 @@ public class Application {
             res.type("text/html");
             return result;
         }
+    }
+
+    private static String serializeXml(Object object) {
+        var buffer = new StringWriter();
+        JAXB.marshal(object, buffer);
+        return buffer.toString();
+    }
+
+    private static <T> T deserializeXml(Class<T> clazz, String text) {
+        return JAXB.unmarshal(new StringReader(text), clazz);
+    }
+
+    private static String serializeJson(Object object) {
+        return json.toJson(object);
+    }
+
+    private static <T> T deserializeJson(Class<T> clazz, String text) {
+        return json.fromJson(text, clazz);
     }
 }

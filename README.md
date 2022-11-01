@@ -39,7 +39,7 @@ $ curl 'http://localhost:8080/app/rest/sample/time' -i
 $ curl 'http://localhost:8080/app/rest/sample/config' -i
 $ curl 'http://localhost:8080/app/rest/sample/echo-xml' -i -X POST \
   -H 'content-type: text/xml' \
-  -d '<EchoRequest><input>This is CURL</input></EchoRequest>'
+  -d '<echoRequest><input>This is CURL</input></echoRequest>'
 $ curl 'http://localhost:8080/app/rest/sample/echo-json' -i -X POST \
   -H 'content-type: application/json' \
   -d '{"input":"This is CURL"}'
