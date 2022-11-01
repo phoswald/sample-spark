@@ -13,9 +13,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,6 +25,8 @@ import com.github.phoswald.sample.task.TaskController;
 import com.github.phoswald.sample.task.TaskEntity;
 import com.github.phoswald.sample.task.TaskResource;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
 import jakarta.xml.bind.JAXB;
 import spark.QueryParamsMap;
 import spark.Request;
