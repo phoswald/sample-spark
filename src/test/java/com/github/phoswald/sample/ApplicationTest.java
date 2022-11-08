@@ -1,4 +1,4 @@
-package com.github.phoswald.sample.spark;
+package com.github.phoswald.sample;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.when;
@@ -13,9 +13,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.github.phoswald.sample.ConfigProvider;
-import com.github.phoswald.sample.di.ApplicationModule;
+import com.github.phoswald.sample.Application;
+import com.github.phoswald.sample.ApplicationModule;
 import com.github.phoswald.sample.task.TaskEntity;
+import com.github.phoswald.sample.utils.ConfigProvider;
 
 class ApplicationTest {
 

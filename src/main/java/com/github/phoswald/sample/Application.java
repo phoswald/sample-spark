@@ -1,4 +1,4 @@
-package com.github.phoswald.sample.spark;
+package com.github.phoswald.sample;
 
 import static spark.Spark.delete;
 import static spark.Spark.get;
@@ -16,14 +16,13 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.github.phoswald.sample.ConfigProvider;
-import com.github.phoswald.sample.di.ApplicationModule;
 import com.github.phoswald.sample.sample.EchoRequest;
 import com.github.phoswald.sample.sample.SampleController;
 import com.github.phoswald.sample.sample.SampleResource;
 import com.github.phoswald.sample.task.TaskController;
 import com.github.phoswald.sample.task.TaskEntity;
 import com.github.phoswald.sample.task.TaskResource;
+import com.github.phoswald.sample.utils.ConfigProvider;
 
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;

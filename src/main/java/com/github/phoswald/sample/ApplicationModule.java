@@ -1,15 +1,14 @@
-package com.github.phoswald.sample.di;
+package com.github.phoswald.sample;
 
 import java.util.HashMap;
 import java.util.function.Supplier;
 
-import com.github.phoswald.sample.ConfigProvider;
 import com.github.phoswald.sample.sample.SampleController;
 import com.github.phoswald.sample.sample.SampleResource;
-import com.github.phoswald.sample.spark.Application;
 import com.github.phoswald.sample.task.TaskController;
 import com.github.phoswald.sample.task.TaskRepository;
 import com.github.phoswald.sample.task.TaskResource;
+import com.github.phoswald.sample.utils.ConfigProvider;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;

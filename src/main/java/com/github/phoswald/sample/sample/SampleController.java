@@ -1,6 +1,6 @@
 package com.github.phoswald.sample.sample;
 
-import com.github.phoswald.sample.ConfigProvider;
+import com.github.phoswald.sample.utils.ConfigProvider;
 
 public class SampleController {
 

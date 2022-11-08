@@ -3,7 +3,7 @@ package com.github.phoswald.sample.sample;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-import com.github.phoswald.sample.ConfigProvider;
+import com.github.phoswald.sample.utils.ConfigProvider;
 
 public class SampleResource {
 
