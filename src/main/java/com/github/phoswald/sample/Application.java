@@ -9,6 +9,7 @@ import static spark.Spark.staticFiles;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.file.Path;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -68,18 +69,18 @@ public class Application {
         staticFiles.location("/resources");
         get("/app/rest/sample/time", (req, res) -> sampleResource.getTime());
         get("/app/rest/sample/config", (req, res) -> sampleResource.getConfig());
-        post("/app/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, reqBody -> sampleResource.postEcho(reqBody)));
-        post("/app/rest/sample/echo-json", createJsonHandler(EchoRequest.class, reqBody -> sampleResource.postEcho(reqBody)));
-        get("/app/pages/sample", createHtmlHandler(() -> sampleController.getSamplePage()));
-        get("/app/rest/tasks", createJsonHandler(() -> taskResource.getTasks()));
-        post("/app/rest/tasks", createJsonHandler(TaskEntity.class, req -> taskResource.postTasks(req)));
-        get("/app/rest/tasks/:id", createJsonHandlerEx(req -> taskResource.getTask(req.params("id"))));
-        put("/app/rest/tasks/:id", createJsonHandlerEx(TaskEntity.class, (req, reqBody) -> taskResource.putTask(req.params("id"), reqBody)));
-        delete("/app/rest/tasks/:id", createJsonHandlerEx(req -> taskResource.deleteTask(req.params("id"))));
-        get("/app/pages/tasks", createHtmlHandler(() -> taskController.getTasksPage()));
-        post("/app/pages/tasks", createHtmlFormHandler(form -> taskController.postTasksPage(form.get("title").value(), form.get("description").value())));
-        get("/app/pages/tasks/:id", createHtmlHandlerEx(req -> taskController.getTaskPage(req.params("id"), req.queryParams("action"))));
-        post("/app/pages/tasks/:id", createHtmlFormHandlerEx((req, form) -> taskController.postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
+        post("/app/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, (req, reqBody) -> sampleResource.postEcho(reqBody)));
+        post("/app/rest/sample/echo-json", createJsonHandler(EchoRequest.class, (req, reqBody) -> sampleResource.postEcho(reqBody)));
+        get("/app/pages/sample", createHtmlHandler(req -> sampleController.getSamplePage()));
+        get("/app/rest/tasks", createJsonHandler(req -> taskResource.getTasks()));
+        post("/app/rest/tasks", createJsonHandler(TaskEntity.class, (req, reqBody) -> taskResource.postTasks(reqBody)));
+        get("/app/rest/tasks/:id", createJsonHandler(req -> taskResource.getTask(req.params("id"))));
+        put("/app/rest/tasks/:id", createJsonHandler(TaskEntity.class, (req, reqBody) -> taskResource.putTask(req.params("id"), reqBody)));
+        delete("/app/rest/tasks/:id", createJsonHandler(req -> taskResource.deleteTask(req.params("id"))));
+        get("/app/pages/tasks", createHtmlHandler(req -> taskController.getTasksPage()));
+        post("/app/pages/tasks", createHtmlHandler((req, form) -> taskController.postTasksPage(form.get("title").value(), form.get("description").value())));
+        get("/app/pages/tasks/:id", createHtmlHandler(req -> taskController.getTaskPage(req.params("id"), req.queryParams("action"))));
+        post("/app/pages/tasks/:id", createHtmlHandler((req, form) -> taskController.postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
     }
 
     void stop() {
@@ -87,77 +88,49 @@ public class Application {
         Spark.awaitStop();
     }
 
-    // TODO generate 404 if response body is null
-    // TODO prevent returning body "null" when not found or deleted
-
-    private static <R> Route createXmlHandler(Class<R> reqClass, Function<R, Object> callback) {
-        return (req, res) -> {
-            res.type("text/xml");
-            return serializeXml(callback.apply(deserializeXml(reqClass, req.body())));
-        };
+    private static <R> Route createXmlHandler(Class<R> reqClass, BiFunction<Request, R, Object> callback) {
+        return (req, res) -> handleXml(res, () -> callback.apply(req, deserializeXml(reqClass, req.body())));
     }
 
-    private static <R> Route createJsonHandler(Supplier<Object> callback) {
-        return (req, res) -> {
+    private static Object handleXml(Response res, Supplier<Object> callback) {
+        Object result = callback.get();
+        res.type("text/xml");
+        return serializeXml(result);
+    }
+
+    private static <R> Route createJsonHandler(Function<Request, Object> callback) {
+        return (req, res) -> handleJson(res, () -> callback.apply(req));
+    }
+
+    private static <R> Route createJsonHandler(Class<R> reqClass, BiFunction<Request, R, Object> callback) {
+        return (req, res) -> handleJson(res, () -> callback.apply(req, deserializeJson(reqClass, req.body())));
+    }
+
+    private static Object handleJson(Response res, Supplier<Object> callback) {
+        Object result = callback.get();
+        if(result == null) {
+            res.status(404);
+            return "";
+        } else if(result instanceof String resultString) {
+            return "";
+        } else {
             res.type("application/json");
-            return serializeJson(callback.get());
-        };
+            return serializeJson(result);
+        }
     }
 
-    private static <R> Route createJsonHandlerEx(Function<Request, Object> callback) {
-        return (req, res) -> {
-            res.type("application/json");
-            return serializeJson(callback.apply(req));
-        };
+    private static Route createHtmlHandler(Function<Request, Object> callback) {
+        return (req, res) -> handleHtml(res, () -> callback.apply(req));
     }
 
-    private static <R> Route createJsonHandler(Class<R> reqClass, Function<R, Object> callback) {
-        return (req, res) -> {
-            res.type("application/json");
-            return serializeJson(callback.apply(deserializeJson(reqClass, req.body())));
-        };
+    private static Route createHtmlHandler(BiFunction<Request, QueryParamsMap, Object> callback) {
+        return (req, res) -> handleHtml(res, () -> callback.apply(req, req.queryMap()));
     }
 
-    private static <R> Route createJsonHandlerEx(Class<R> reqClass, BiFunction<Request, R, Object> callback) {
-        return (req, res) -> {
-            res.type("application/json");
-            return serializeJson(callback.apply(req, deserializeJson(reqClass, req.body())));
-        };
-    }
-
-    private static Route createHtmlHandler(Supplier<Object> callback) {
-        return (req, res) -> {
-            res.type("text/html");
-            return callback.get();
-        };
-    }
-
-    private static Route createHtmlHandlerEx(Function<Request, Object> callback) {
-        return (req, res) -> {
-            res.type("text/html");
-            return callback.apply(req);
-        };
-    }
-
-    private static Route createHtmlFormHandler(Function<QueryParamsMap, Object> callback) {
-        return (req, res) -> {
-            res.type("text/html");
-            QueryParamsMap form = req.queryMap();
-            return callback.apply(form);
-        };
-    }
-
-    private static Route createHtmlFormHandlerEx(BiFunction<Request, QueryParamsMap, Object> callback) {
-        return (req, res) -> {
-            res.type("text/html");
-            QueryParamsMap form = req.queryMap();
-            return sendHtmlOrRedirect(res, callback.apply(req, form));
-        };
-    }
-
-    private static Object sendHtmlOrRedirect(Response res, Object result) {
-        if(result instanceof String && ((String) result).startsWith("REDIRECT:")) { // TODO refactor redirect
-        	res.redirect(((String) result).substring(9));
+    private static Object handleHtml(Response res, Supplier<Object> callback) {
+        Object result = callback.get();
+        if(result instanceof Path resultPath) {
+        	res.redirect(resultPath.toString());
             return null;
         } else {
             res.type("text/html");
