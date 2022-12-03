@@ -67,8 +67,8 @@ public class Application {
         logger.info("sample-spark is starting, port=" + port);
         port(port);
         staticFiles.location("/resources");
-        get("/app/rest/sample/time", (req, res) -> sampleResource.getTime());
-        get("/app/rest/sample/config", (req, res) -> sampleResource.getConfig());
+        get("/app/rest/sample/time", createHandler(req -> sampleResource.getTime()));
+        get("/app/rest/sample/config", createHandler(req -> sampleResource.getConfig()));
         post("/app/rest/sample/echo-xml", createXmlHandler(EchoRequest.class, (req, reqBody) -> sampleResource.postEcho(reqBody)));
         post("/app/rest/sample/echo-json", createJsonHandler(EchoRequest.class, (req, reqBody) -> sampleResource.postEcho(reqBody)));
         get("/app/pages/sample", createHtmlHandler(req -> sampleController.getSamplePage()));
@@ -88,6 +88,10 @@ public class Application {
         Spark.awaitStop();
     }
 
+    private static Route createHandler(Function<Request, Object> callback) {
+        return (req, res) -> callback.apply(req);
+    }
+
     private static <R> Route createXmlHandler(Class<R> reqClass, BiFunction<Request, R, Object> callback) {
         return (req, res) -> handleXml(res, () -> callback.apply(req, deserializeXml(reqClass, req.body())));
     }
@@ -98,7 +102,7 @@ public class Application {
         return serializeXml(result);
     }
 
-    private static <R> Route createJsonHandler(Function<Request, Object> callback) {
+    private static Route createJsonHandler(Function<Request, Object> callback) {
         return (req, res) -> handleJson(res, () -> callback.apply(req));
     }
 
