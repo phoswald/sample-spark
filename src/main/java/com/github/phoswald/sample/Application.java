@@ -112,7 +112,7 @@ public class Application {
             res.status(404);
             return "";
         } else if(result instanceof String resultString) {
-            return "";
+            return resultString;
         } else {
             res.type("application/json");
             return serializeJson(result);
