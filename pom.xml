@@ -11,6 +11,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
+    <jooq.version>3.17.6</jooq.version>
   </properties>
 
   <dependencyManagement>
@@ -70,22 +71,22 @@
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq-meta</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
     <dependency>
       <groupId>org.jooq</groupId>
       <artifactId>jooq-codegen</artifactId>
-      <version>3.13.1</version>
+      <version>${jooq.version}</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.4.200</version>
+      <version>2.1.214</version>
       <scope>runtime</scope>
     </dependency>
   </dependencies>
@@ -103,7 +104,7 @@
       <plugin>
         <groupId>org.jooq</groupId>
         <artifactId>jooq-codegen-maven</artifactId>
-        <version>3.13.1</version>
+        <version>${jooq.version}</version>
         <executions>
           <execution>
             <id>jooq-codegen</id>
