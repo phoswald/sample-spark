@@ -59,7 +59,7 @@ public class Application {
     }
 
     public static void main(String[] args) {
-        var module = new ApplicationModule() { };
+        var module = new ApplicationModule();
         module.getApplication().start();
     }
 
