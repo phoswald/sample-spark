@@ -18,7 +18,6 @@ class PeekMatcher {
             @Override
             public boolean matches(Object actual) {
                 logger.info("peek() matches '{}'", actual);
-                System.out.println("spy:" + actual);
                 if (actual instanceof String actualString) {
                     consumer.accept(actualString);
                     return true;
