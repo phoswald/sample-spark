@@ -81,6 +81,7 @@ public class Application {
         post("/app/pages/tasks", createHtmlHandler((req, form) -> taskController.postTasksPage(form.get("title").value(), form.get("description").value())));
         get("/app/pages/tasks/:id", createHtmlHandler(req -> taskController.getTaskPage(req.params("id"), req.queryParams("action"))));
         post("/app/pages/tasks/:id", createHtmlHandler((req, form) -> taskController.postTaskPage(req.params("id"), form.get("action").value(), form.get("title").value(), form.get("description").value(), form.get("done").value())));
+        Spark.awaitInitialization();
     }
 
     void stop() {
